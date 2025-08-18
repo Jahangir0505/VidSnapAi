@@ -1,23 +1,33 @@
-
 import os
 import uuid
 from elevenlabs import VoiceSettings
 from elevenlabs.client import ElevenLabs
 from config import ELEVENLABS_API_KEY
+from pathlib import Path
+
+# Vercel's functions can only write to the /tmp directory
+# Use pathlib for more robust path management
+TEMP_DIR = Path("/tmp")
 
 elevenlabs = ElevenLabs(
     api_key=ELEVENLABS_API_KEY,
 )
 
-
 def text_to_speech_file(text: str, folder: str) -> str:
+    # Build the full path for the audio file within the temporary directory
+    save_dir = TEMP_DIR / "user_uploads" / folder
+    
+    # Create the directory if it doesn't exist
+    os.makedirs(save_dir, exist_ok=True)
+    
+    save_file_path = save_dir / "audio.mp3"
+    
     # Calling the text_to_speech conversion API with detailed parameters
     response = elevenlabs.text_to_speech.convert(
-        voice_id="pNInz6obpgDQGcFmaJgB", # Adam pre-made voice
+        voice_id="pNInz6obpgDQGcFmaJgB",
         output_format="mp3_22050_32",
         text=text,
-        model_id="eleven_turbo_v2_5", # use the turbo model for low latency
-        # Optional voice settings that allow you to customize the output
+        model_id="eleven_turbo_v2_5",
         voice_settings=VoiceSettings(
             stability=0.0,
             similarity_boost=1.0,
@@ -26,13 +36,7 @@ def text_to_speech_file(text: str, folder: str) -> str:
             speed=1.0,
         ),
     )
-
-    # uncomment the line below to play the audio back
-    # play(response)
-
-    # Generating a unique file name for the output MP3 file
-    save_file_path = os.path.join(f"user_uploads/{folder}","audio.mp3")
-
+    
     # Writing the audio to a file
     with open(save_file_path, "wb") as f:
         for chunk in response:
@@ -40,10 +44,10 @@ def text_to_speech_file(text: str, folder: str) -> str:
                 f.write(chunk)
 
     print(f"{save_file_path}: A new audio file was saved successfully!")
-
-
+    
     # Return the path of the saved audio file
-    return save_file_path
-text_to_speech_file("hii my name is md jahangir i am a good boy", "sample_folder")
+    return str(save_file_path)
 
-
+# Example call for local testing:
+# if __name__ == "__main__":
+#     text_to_speech_file("Hello there, this is a test.", "sample_folder")
